@@ -51,8 +51,7 @@ func Login() {
 				panic(setErr)
 			}
 
-			fmt.Println(tokenS)
-			err := redisC.Set(tokenS, userSelected.UserID, 0).Err()
+			err := redisC.Set(tokenS, userSelected.UserID, time.Hour*24*30).Err()
 			if err != nil {
 				panic(err)
 			}
