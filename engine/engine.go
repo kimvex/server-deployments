@@ -53,6 +53,7 @@ func ServerExecute() {
 				})
 				if token.Valid {
 					c.Next()
+					return
 				} else {
 					if ve, ok := err.(*jwt.ValidationError); ok {
 						if ve.Errors&jwt.ValidationErrorMalformed != 0 {
@@ -66,6 +67,7 @@ func ServerExecute() {
 							c.Status(401)
 						}
 					}
+					return
 				}
 			}
 
