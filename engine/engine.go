@@ -38,31 +38,40 @@ func ServerExecute() {
 	app.Use("*", func(c *fiber.Ctx) {
 		arrays := Con()
 		fmt.Println(arrays)
+		passport := true
 		for _, v := range arrays {
-			if c.Path() == v {
-				if c.Get("token") != "" {
-					token, err := jwt.Parse(c.Get("token"), func(token *jwt.Token) (interface{}, error) {
-						return []byte("secret"), nil
-					})
-					if token.Valid {
-						c.Next()
-					} else {
-						if ve, ok := err.(*jwt.ValidationError); ok {
-							if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-								c.JSON(ErroRespnse{MESSAGE: "Token structure not valid"})
-								c.Status(401)
-							} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-								c.JSON(ErroRespnse{MESSAGE: "Token is expired"})
-								c.Status(401)
-							} else {
-								c.JSON(ErroRespnse{MESSAGE: "Invalid token"})
-								c.Status(401)
-							}
+			fmt.Println(c.Path(), v.Url, "vamos")
+			if c.Path() == v.Url && c.Method() == v.Method {
+				passport = false
+			}
+		}
+
+		if passport == false {
+			if c.Get("token") != "" {
+				token, err := jwt.Parse(c.Get("token"), func(token *jwt.Token) (interface{}, error) {
+					return []byte("secret"), nil
+				})
+				if token.Valid {
+					c.Next()
+				} else {
+					if ve, ok := err.(*jwt.ValidationError); ok {
+						if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+							c.JSON(ErroRespnse{MESSAGE: "Token structure not valid"})
+							c.Status(401)
+						} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+							c.JSON(ErroRespnse{MESSAGE: "Token is expired"})
+							c.Status(401)
+						} else {
+							c.JSON(ErroRespnse{MESSAGE: "Invalid token"})
+							c.Status(401)
 						}
 					}
 				}
 			}
 
+			c.JSON(ErroRespnse{MESSAGE: "Without token"})
+			c.Status(401)
+		} else {
 			c.Next()
 		}
 	})
