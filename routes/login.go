@@ -39,11 +39,12 @@ func Login() {
 		compare := bcrypt.CompareHashAndPassword([]byte(string(userSelected.Password)), []byte(userLogin.Password))
 
 		if compare == nil {
+			claims := &jwt.StandardClaims{
+				ExpiresAt: time.Now().Add(time.Hour * 24 * 30).Unix(),
+				Issuer:    "kimvex",
+			}
 
-			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-				"kmv": "kimvex",
-				"nbf": time.Date(2015, 10, 10, 12, 0, 0, 0, time.UTC).Unix(),
-			})
+			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 			tokenS, setErr := token.SignedString(singSecret)
 			if setErr != nil {

@@ -5,6 +5,7 @@ import (
 
 	"../db"
 	"../routes"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber"
 	"github.com/gofiber/fiber/middleware"
 )
@@ -40,15 +41,30 @@ func ServerExecute() {
 		for _, v := range arrays {
 			if c.Path() == v {
 				if c.Get("token") != "" {
-					fmt.Println("lo encontro")
-				} else {
-					fmt.Println("no lo encontro")
+					token, err := jwt.Parse(c.Get("token"), func(token *jwt.Token) (interface{}, error) {
+						return []byte("secret"), nil
+					})
+					if token.Valid {
+						c.Next()
+					} else {
+						if ve, ok := err.(*jwt.ValidationError); ok {
+							if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+								c.JSON(ErroRespnse{MESSAGE: "Token structure not valid"})
+								c.Status(401)
+							} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+								c.JSON(ErroRespnse{MESSAGE: "Token is expired"})
+								c.Status(401)
+							} else {
+								c.JSON(ErroRespnse{MESSAGE: "Invalid token"})
+								c.Status(401)
+							}
+						}
+					}
 				}
 			}
+
+			c.Next()
 		}
-		fmt.Println(c.Get("token"))
-		fmt.Println("si pasamos", c.Path())
-		c.Next()
 	})
 
 	database := db.Connect()
