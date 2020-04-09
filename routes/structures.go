@@ -63,6 +63,7 @@ func Routes(App *fiber.App, Database *sql.DB, RedisCl *redis.Client, UserIDC str
 	Register()
 	Login()
 	AddHost()
+	Nodos()
 
 	app.Get("/", func(c *fiber.Ctx) {
 		var respuesta SuccessResponse
