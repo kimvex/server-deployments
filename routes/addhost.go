@@ -117,15 +117,6 @@ func AddHost() {
 		var hostDataSet HostData
 		hostID := c.Params("host_id")
 
-		sql, _, _ := sq.
-			Select("host", "create_at", "service_name", "repository", "path", "name_nodo", "version").
-			From("hosts").
-			LeftJoin("services on hosts.hosts_id=services.hosts_id").
-			LeftJoin("nodos on nodos.nodo_id=services.nodo_id").
-			Where(sq.Eq{"hosts_id.host_id": hostID}).
-			ToSql()
-
-		fmt.Println(sql)
 		err := sq.
 			Select("host", "create_at", "service_name", "repository", "path", "name_nodo", "version").
 			From("hosts").
