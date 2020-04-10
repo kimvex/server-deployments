@@ -63,6 +63,7 @@ func Routes(App *fiber.App, Database *sql.DB, RedisCl *redis.Client, UserIDC str
 	Register()
 	Login()
 	AddHost()
+	Services()
 	Nodos()
 
 	app.Get("/", func(c *fiber.Ctx) {
@@ -72,7 +73,7 @@ func Routes(App *fiber.App, Database *sql.DB, RedisCl *redis.Client, UserIDC str
 	})
 }
 
-// ValidateRoute
+//ValidateRoute of token
 func ValidateRoute(c *fiber.Ctx) {
 	if c.Get("token") != "" {
 		token, err := jwt.Parse(c.Get("token"), func(token *jwt.Token) (interface{}, error) {
@@ -81,21 +82,21 @@ func ValidateRoute(c *fiber.Ctx) {
 		if token.Valid {
 			c.Next()
 			return
-		} else {
-			if ve, ok := err.(*jwt.ValidationError); ok {
-				if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-					c.JSON(ErroRespnse{MESSAGE: "Token structure not valid"})
-					c.Status(401)
-				} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-					c.JSON(ErroRespnse{MESSAGE: "Token is expired"})
-					c.Status(401)
-				} else {
-					c.JSON(ErroRespnse{MESSAGE: "Invalid token"})
-					c.Status(401)
-				}
-			}
-			return
 		}
+
+		if ve, ok := err.(*jwt.ValidationError); ok {
+			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+				c.JSON(ErroRespnse{MESSAGE: "Token structure not valid"})
+				c.Status(401)
+			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+				c.JSON(ErroRespnse{MESSAGE: "Token is expired"})
+				c.Status(401)
+			} else {
+				c.JSON(ErroRespnse{MESSAGE: "Invalid token"})
+				c.Status(401)
+			}
+		}
+		return
 	}
 
 	c.JSON(ErroRespnse{MESSAGE: "Without token"})
