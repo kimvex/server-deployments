@@ -16,13 +16,19 @@ type BodyNodes struct {
 
 //NodosData struct for response of nodes
 type NodosData struct {
-	NameNodo sql.NullString
-	Version  sql.NullString
+	NameNodo sql.NullString `json:"name_nodo"`
+	Version  sql.NullString `json:"version"`
+}
+
+//NodoDataParse struct for parsing nodoData
+type NodoDataParse struct {
+	NameNodo *string `json:"name_nodo"`
+	Version  *string `json:"version"`
 }
 
 //ResponseSuccessDataJSON response of nodes
 type ResponseSuccessDataJSON struct {
-	Nodos []NodosData `json:"nodos"`
+	Nodos []NodoDataParse `json:"nodos"`
 }
 
 // Nodos is a function for adding nodos and get nodos
@@ -49,15 +55,15 @@ func Nodos() {
 			return
 		}
 
-		success := SuccessResponse{MESSAGE: "El nodo no pudo ser agregado"}
+		success := SuccessResponse{MESSAGE: "El nodo se ah agregado correctamente"}
 		c.JSON(success)
 	})
 
 	app.Get("/nodos", ValidateRoute, func(c *fiber.Ctx) {
 		var nodosData NodosData
 		var nodeList []NodosData
-
-		fmt.Println("Si es aquu")
+		var componentNodos NodoDataParse
+		var listNodo []NodoDataParse
 
 		nodes, err := sq.Select("name_nodo", "version").
 			From("nodos").
@@ -78,12 +84,16 @@ func Nodos() {
 		}
 
 		var response ResponseSuccessDataJSON
-		response.Nodos = []NodosData{}
+		response.Nodos = []NodoDataParse{}
 		if nodeList != nil {
-			response.Nodos = nodeList
+			for i := 0; i < len(nodeList); i++ {
+				componentNodos.NameNodo = &nodeList[i].NameNodo.String
+				componentNodos.Version = &nodeList[i].Version.String
+				listNodo = append(listNodo, componentNodos)
+			}
 		}
-		fmt.Println(response)
 
+		response.Nodos = listNodo
 		c.JSON(response)
 	})
 }
