@@ -9,6 +9,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+//Register namespace for endpoints register
 func Register() {
 	fmt.Println(userID)
 	app.Post("/register", func(c *fiber.Ctx) {
@@ -41,11 +42,10 @@ func Register() {
 			return
 		}
 
-		password_hash, _ := bcrypt.GenerateFromPassword([]byte(bodyRequest.Password), 14)
-
+		passwordHash, _ := bcrypt.GenerateFromPassword([]byte(bodyRequest.Password), 14)
 		id, errorInsert := sq.Insert("usersS").
 			Columns("email", "password").
-			Values(bodyRequest.Email, string(password_hash)).
+			Values(bodyRequest.Email, string(passwordHash)).
 			RunWith(database).
 			Exec()
 
