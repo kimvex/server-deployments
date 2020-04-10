@@ -37,8 +37,11 @@ type ResponseSuccessJSON struct {
 
 // HostData struct of data get host
 type HostData struct {
-	Host        sql.NullString
-	CreateAt    sql.NullString
+	Host     sql.NullString
+	CreateAt sql.NullString
+}
+
+type ServiceHostData struct {
 	ServiceName sql.NullString
 	Repository  sql.NullString
 	Path        sql.NullString
@@ -46,14 +49,19 @@ type HostData struct {
 	Version     sql.NullString
 }
 
+type ResponseServiceHost struct {
+	ServiceName *string `json:"service_name"`
+	Repository  *string `json:"respository"`
+	Path        *string `json:"path"`
+	NameNodo    *string `json:"name_nodo"`
+	Version     *string `json:"version"`
+}
+
+//ResponseHostData structure of response
 type ResponseHostData struct {
-	Host        string `json:"host"`
-	CreateAt    string `json:"create_at"`
-	ServiceName string `json:"service_name"`
-	Repository  string `json:"respository"`
-	Path        string `json:"path"`
-	NameNodo    string `json:"name_nodo"`
-	Version     string `json:"version"`
+	Host     string                `json:"host"`
+	CreateAt string                `json:"create_at"`
+	Services []ResponseServiceHost `json:"services"`
 }
 
 /*AddHost - Function of cotainer for AddHost*/
@@ -115,18 +123,20 @@ func AddHost() {
 
 	app.Get("/host/:host_id", ValidateRoute, func(c *fiber.Ctx) {
 		var hostDataSet HostData
+		var serviceToadd ServiceHostData
+		var listServices []ServiceHostData
+		var componentServiceVal ResponseServiceHost
+		var listServicesVal []ResponseServiceHost
 		hostID := c.Params("host_id")
 
 		err := sq.
-			Select("host", "create_at", "service_name", "repository", "path", "name_nodo", "version").
+			Select("host", "create_at").
 			From("hosts").
-			LeftJoin("services on hosts.hosts_id=services.hosts_id").
-			LeftJoin("nodos on nodos.nodo_id=services.nodo_id").
 			Where(sq.Eq{"hosts.hosts_id": hostID}).
 			RunWith(database).
 			QueryRow().
-			Scan(&hostDataSet.Host, &hostDataSet.CreateAt, &hostDataSet.ServiceName, &hostDataSet.Repository, &hostDataSet.Path, &hostDataSet.NameNodo, &hostDataSet.Version)
-			// Scan(&hostDataSet.Host.String, &hostDataSet.CreateAt.String, &hostDataSet.ServiceName.String, &hostDataSet.Repository.String, &hostDataSet.Path.String, &hostDataSet.NameNodo.String, &hostDataSet.Version.String)
+			Scan(&hostDataSet.Host, &hostDataSet.CreateAt)
+
 		if err != nil {
 			fmt.Println(err)
 			ErrorI := ErrorResponse{Message: "Ocurrio un error con los hosts"}
@@ -135,14 +145,46 @@ func AddHost() {
 			return
 		}
 
+		services, errServices := sq.
+			Select(
+				"service_name",
+				"repository",
+				"path",
+				"name_nodo",
+				"version",
+			).
+			From("services").
+			LeftJoin("nodos on nodos.nodo_id=services.nodo_id").
+			RunWith(database).
+			Query()
+
+		if errServices != nil {
+			fmt.Println(errServices)
+			ErrorI := ErrorResponse{Message: "Ocurrio un error con los nodos"}
+			c.JSON(ErrorI)
+			c.SendStatus(400)
+			return
+		}
+
+		for services.Next() {
+			_ = services.Scan(&serviceToadd.ServiceName, &serviceToadd.Repository, &serviceToadd.Path, &serviceToadd.NameNodo, &serviceToadd.Version)
+			listServices = append(listServices, serviceToadd)
+		}
+
+		for i := 0; i < len(listServices); i++ {
+			fmt.Println(listServices[i].ServiceName.String)
+			componentServiceVal.ServiceName = &listServices[i].ServiceName.String
+			componentServiceVal.Repository = &listServices[i].Repository.String
+			componentServiceVal.Path = &listServices[i].Path.String
+			componentServiceVal.NameNodo = &listServices[i].NameNodo.String
+			componentServiceVal.Version = &listServices[i].Version.String
+			listServicesVal = append(listServicesVal, componentServiceVal)
+		}
+
 		c.JSON(ResponseHostData{
-			Host:        hostDataSet.Host.String,
-			CreateAt:    hostDataSet.CreateAt.String,
-			ServiceName: hostDataSet.ServiceName.String,
-			Repository:  hostDataSet.Repository.String,
-			Path:        hostDataSet.Path.String,
-			NameNodo:    hostDataSet.NameNodo.String,
-			Version:     hostDataSet.Version.String,
+			Host:     hostDataSet.Host.String,
+			CreateAt: hostDataSet.CreateAt.String,
+			Services: listServicesVal,
 		})
 	})
 }
