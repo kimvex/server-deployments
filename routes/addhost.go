@@ -41,6 +41,7 @@ type HostData struct {
 	CreateAt sql.NullString
 }
 
+//ServiceHostData structure of response sql
 type ServiceHostData struct {
 	ServiceName sql.NullString
 	Repository  sql.NullString
@@ -49,6 +50,7 @@ type ServiceHostData struct {
 	Version     sql.NullString
 }
 
+//ResponseServiceHost structure of case string o null
 type ResponseServiceHost struct {
 	ServiceName *string `json:"service_name"`
 	Repository  *string `json:"respository"`
@@ -186,5 +188,17 @@ func AddHost() {
 			CreateAt: hostDataSet.CreateAt.String,
 			Services: listServicesVal,
 		})
+	})
+
+	app.Post("/connect", func(c *fiber.Ctx) {
+		var host BodyConnect
+
+		if err := c.BodyParser(&host); err != nil {
+			fmt.Println(err)
+		}
+
+		runCommands()
+
+		c.SendStatus(400)
 	})
 }

@@ -31,6 +31,14 @@ type ResponseSuccessDataJSON struct {
 	Nodos []NodoDataParse `json:"nodos"`
 }
 
+//BodyAddNodoService structure for add command
+type BodyAddNodoService struct {
+	NodoID    int `json:"nodo_id"`
+	ServiceID int `json:"service_id"`
+	CommandID int `json:"command_id"`
+	Index     int `json:"index"`
+}
+
 // Nodos is a function for adding nodos and get nodos
 func Nodos() {
 	app.Post("/nodos", ValidateRoute, func(c *fiber.Ctx) {
@@ -39,13 +47,11 @@ func Nodos() {
 			fmt.Println(err)
 		}
 
-		idNode, errorInsert := sq.Insert("nodos").
+		_, errorInsert := sq.Insert("nodos").
 			Columns("name_nodo", "version").
 			Values(body.NodeName, body.Version).
 			RunWith(database).
 			Exec()
-
-		idNode.LastInsertId()
 
 		if errorInsert != nil {
 			fmt.Println(errorInsert)
@@ -95,5 +101,35 @@ func Nodos() {
 
 		response.Nodos = listNodo
 		c.JSON(response)
+	})
+
+	app.Post("/nodo/command", ValidateRoute, func(c *fiber.Ctx) {
+		var body BodyAddNodoService
+		if err := c.BodyParser(&body); err != nil {
+			fmt.Println(err)
+		}
+
+		_, errInsert := sq.Insert("commands_node").
+			Columns("nodo_id", "service_id", "command_id", "index_position", "status").
+			Values(
+				body.NodoID,
+				body.ServiceID,
+				body.CommandID,
+				body.Index,
+				"ACTIVE",
+			).
+			RunWith(database).
+			Exec()
+
+		if errInsert != nil {
+			fmt.Println(errInsert)
+			ErrorI := ErrorResponse{Message: "No se pudo guardar el servicio"}
+			c.JSON(ErrorI)
+			c.SendStatus(400)
+			return
+		}
+
+		success := SuccessResponse{MESSAGE: "No se pudo agregar el comando"}
+		c.JSON(success)
 	})
 }
