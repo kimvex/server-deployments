@@ -3,8 +3,6 @@ package routes
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
-	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gofiber/fiber"
@@ -19,11 +17,10 @@ type DataService struct {
 	NodoID      int    `json:"nodo_id"`
 }
 
-//NodoSql structure get nodo sql
-type NodoSql struct {
-	NodeName  sql.NullString `json:"nodo_name"`
-	Version   sql.NullString `json:"version"`
-	CommandID sql.NullString `json:"command_id"`
+//NodoSQL structure get nodo sql
+type NodoSQL struct {
+	NodeName sql.NullString `json:"nodo_name"`
+	Version  sql.NullString `json:"version"`
 }
 
 //Example for null int
@@ -83,30 +80,24 @@ func Services() {
 	})
 
 	app.Get("/service/:service_id/node/:node_id", ValidateRoute, func(c *fiber.Ctx) {
-		var nodoSql NodoSql
-		var listIds []string
-		var listIdsArr []int
+		var nodoSQL NodoSQL
 		var commandFromSQL CommadsSQL
 		var listCommandFromSQL []CommadsSQL
-		var listCommand []*string
 		var responseData reponseIDs
-		// var nodeList []NodoSql
-		// var commands CommandsSql
+		var arrLitsCommands []*string
 		serviceID := c.Params("service_id")
-		nodeId := c.Params("node_id")
+		nodeID := c.Params("node_id")
 
 		err := sq.Select(
 			"nodos.name_nodo",
 			"nodos.version",
-			"group_concat(command_id) as commands_id",
 		).
 			From("commands_node").
 			LeftJoin("nodos on commands_node.nodo_id=nodos.nodo_id").
-			Where(sq.Eq{"commands_node.nodo_id": nodeId, "service_id": serviceID}).
-			GroupBy("service_id, name_nodo, version").
+			Where(sq.Eq{"commands_node.nodo_id": nodeID, "service_id": serviceID}).
 			RunWith(database).
 			QueryRow().
-			Scan(&nodoSql.NodeName, &nodoSql.Version, &nodoSql.CommandID)
+			Scan(&nodoSQL.NodeName, &nodoSQL.Version)
 
 		if err != nil {
 			fmt.Println(err)
@@ -116,21 +107,11 @@ func Services() {
 			return
 		}
 
-		listIds = strings.Split(nodoSql.CommandID.String, ",")
-		for i := 0; i < len(listIds); i++ {
-			intValue, errStr := strconv.Atoi(listIds[i])
-			if errStr != nil {
-				fmt.Println(errStr, "Error al castear el id a int")
-			}
-
-			listIdsArr = append(listIdsArr, intValue)
-		}
-
-		fmt.Println(listIdsArr)
-
-		commandSqlStr, errIds := sq.Select("command").
-			From("commands").
-			Where(sq.Eq{"command_id": []int{1, 2}}).
+		commandSQLStr, errIds := sq.Select("command").
+			From("commands_node").
+			LeftJoin("commands on commands_node.command_id=commands.command_id").
+			Where(sq.Eq{"commands_node.nodo_id": nodeID, "service_id": serviceID}).
+			OrderBy("index_position ASC").
 			RunWith(database).
 			Query()
 
@@ -141,23 +122,18 @@ func Services() {
 			c.SendStatus(400)
 			return
 		}
-		for commandSqlStr.Next() {
-			_ = commandSqlStr.Scan(&commandFromSQL.Comm)
-
+		for commandSQLStr.Next() {
+			_ = commandSQLStr.Scan(&commandFromSQL.Comm)
 			listCommandFromSQL = append(listCommandFromSQL, commandFromSQL)
 		}
 
-		fmt.Println("el-", listCommandFromSQL)
-
 		for i := 0; i < len(listCommandFromSQL); i++ {
-			listCommand = append(listCommand, &listCommandFromSQL[i].Comm.String)
+			arrLitsCommands = append(arrLitsCommands, &listCommandFromSQL[i].Comm.String)
 		}
 
-		fmt.Println(listCommand, "ella es cayaita")
-
-		responseData.NodeName = &nodoSql.NodeName.String
-		responseData.Version = &nodoSql.Version.String
-		responseData.Commands = listCommand
+		responseData.NodeName = &nodoSQL.NodeName.String
+		responseData.Version = &nodoSQL.Version.String
+		responseData.Commands = arrLitsCommands
 
 		c.JSON(responseData)
 	})
