@@ -41,6 +41,20 @@ type reponseIDs struct {
 	Commands []*string `json:"commands"`
 }
 
+type CommandsDeploy struct {
+	Path       sql.NullString `json:"path"`
+	Repository sql.NullString `json:"repository"`
+	Host       sql.NullString `json:"host"`
+}
+
+type CommandsResult struct {
+	Command sql.NullString `json:"command"`
+}
+
+type ResponseDeploy struct {
+	R string `json:"message"`
+}
+
 //Services Namespace for endpoint of services
 func Services() {
 	app.Post("/service", ValidateRoute, func(c *fiber.Ctx) {
@@ -138,7 +152,58 @@ func Services() {
 		c.JSON(responseData)
 	})
 
-	app.Post("/service/deploy", ValidateRoute, func(c *fiber.Ctx) {
+	app.Post("/service/:service_id/node/:node_id/deploy", ValidateRoute, func(c *fiber.Ctx) {
+		var commandsD CommandsDeploy
+		var commandRe CommandsResult
+		var listCommands []CommandsResult
+		var accequibleCommands []*string
+		serviceID := c.Params("service_id")
+		nodeID := c.Params("node_id")
 
+		errCD := sq.Select("path", "repository", "host").
+			From("commands_node").
+			LeftJoin("services on commands_node.service_id=services.service_id").
+			LeftJoin("hosts on services.hosts_id=hosts.hosts_id").
+			RunWith(database).
+			QueryRow().
+			Scan(&commandsD.Path, &commandsD.Repository, &commandsD.Host)
+
+		if errCD != nil {
+			fmt.Println(errCD)
+			ErrorI := ErrorResponse{Message: "Ocurrio al obtener el nodo"}
+			c.JSON(ErrorI)
+			c.SendStatus(400)
+			return
+		}
+
+		cmd, errCMD := sq.Select("command").
+			From("commands_node").
+			LeftJoin("commands on commands_node.command_id=commands.command_id").
+			Where(sq.Eq{"commands_node.nodo_id": nodeID, "service_id": serviceID}).
+			OrderBy("index_position ASC").
+			RunWith(database).
+			Query()
+
+		if errCMD != nil {
+			fmt.Println(errCMD)
+			ErrorI := ErrorResponse{Message: "Ocurrio al obtener el nodo"}
+			c.JSON(ErrorI)
+			c.SendStatus(400)
+			return
+		}
+
+		for cmd.Next() {
+			_ = cmd.Scan(&commandRe.Command)
+			fmt.Println(commandRe.Command.String, &commandRe.Command.String)
+			listCommands = append(listCommands, commandRe)
+		}
+
+		for i := 0; i < len(listCommands); i++ {
+			accequibleCommands = append(accequibleCommands, &listCommands[i].Command.String)
+		}
+
+		ExecuteDeploy(&commandsD.Path.String, accequibleCommands, &commandsD.Repository.String, &commandsD.Host.String)
+
+		c.JSON(ResponseDeploy{R: "Success"})
 	})
 }
