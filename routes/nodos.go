@@ -129,7 +129,7 @@ func Nodos() {
 			return
 		}
 
-		success := SuccessResponse{MESSAGE: "No se pudo agregar el comando"}
+		success := SuccessResponse{MESSAGE: "El comando se agregado correctamente"}
 		c.JSON(success)
 	})
 }

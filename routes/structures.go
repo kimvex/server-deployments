@@ -66,6 +66,7 @@ func Routes(App *fiber.App, Database *sql.DB, RedisCl *redis.Client, UserIDC str
 	Services()
 	Nodos()
 	Commands()
+	EnvoromentVariables()
 
 	app.Get("/", func(c *fiber.Ctx) {
 		var respuesta SuccessResponse

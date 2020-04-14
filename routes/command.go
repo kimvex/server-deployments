@@ -61,7 +61,7 @@ func runCommands() {
 	fmt.Println(b.String())
 }
 
-func ExecuteDeploy(path *string, commands []*string, repository *string, host *string) {
+func ExecuteDeploy(path *string, commands []*string, envs []EnvString, repository *string, host *string) {
 	fmt.Println(path, commands, repository, host)
 	hostKeyCallback, err := knownhosts.New("/Users/benjamindelacruzmartinez/.ssh/known_hosts")
 	if err != nil {
@@ -109,7 +109,7 @@ func ExecuteDeploy(path *string, commands []*string, repository *string, host *s
 
 	pathRef := *path
 	var commandsStrings string
-	commandsStrings = fmt.Sprintf("cd %v", pathRef)
+	commandsStrings = fmt.Sprintf("/bin/bash -c printenv && cd %v", pathRef)
 	and := ""
 
 	for i := 0; i < len(commands); i++ {
@@ -124,6 +124,15 @@ func ExecuteDeploy(path *string, commands []*string, repository *string, host *s
 
 	var b bytes.Buffer
 	session.Stdout = &b
+
+	for i := 0; i < len(envs); i++ {
+		envName := *envs[i].EnvName
+		envValue := *envs[i].EnvValue
+		if errEnv := session.Setenv(envName, envValue); errEnv != nil {
+			fmt.Println("Don't have setting enviroment variable", errEnv)
+		}
+	}
+
 	errRun := session.Run(commandsStrings)
 	if errRun != nil {
 		fmt.Println("Failed to run: " + errRun.Error())

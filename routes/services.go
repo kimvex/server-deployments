@@ -55,6 +55,16 @@ type ResponseDeploy struct {
 	R string `json:"message"`
 }
 
+type EnvSQL struct {
+	EnvName  sql.NullString `json:"variable_name"`
+	EnvValue sql.NullString `json:"variable_value"`
+}
+
+type EnvString struct {
+	EnvName  *string `json:"variable_name"`
+	EnvValue *string `json:"variable_value"`
+}
+
 //Services Namespace for endpoint of services
 func Services() {
 	app.Post("/service", ValidateRoute, func(c *fiber.Ctx) {
@@ -157,6 +167,11 @@ func Services() {
 		var commandRe CommandsResult
 		var listCommands []CommandsResult
 		var accequibleCommands []*string
+		var envs EnvSQL
+		var listEnvSQL []EnvSQL
+		var envStr EnvString
+		var arrListEnv []EnvString
+
 		serviceID := c.Params("service_id")
 		nodeID := c.Params("node_id")
 
@@ -202,7 +217,33 @@ func Services() {
 			accequibleCommands = append(accequibleCommands, &listCommands[i].Command.String)
 		}
 
-		ExecuteDeploy(&commandsD.Path.String, accequibleCommands, &commandsD.Repository.String, &commandsD.Host.String)
+		envGetSQL, errEnv := sq.Select("variable_name", "variable_value").
+			From("variables_enviroment").
+			Where(sq.Eq{"service_id": serviceID}).
+			RunWith(database).
+			Query()
+
+		if errEnv != nil {
+			fmt.Println(errEnv)
+			ErrorI := ErrorResponse{Message: "Ocurrio un error con las variables"}
+			c.JSON(ErrorI)
+			c.SendStatus(400)
+			return
+		}
+
+		for envGetSQL.Next() {
+			_ = envGetSQL.Scan(&envs.EnvName, &envs.EnvValue)
+
+			listEnvSQL = append(listEnvSQL, envs)
+		}
+
+		for i := 0; i < len(listEnvSQL); i++ {
+			envStr.EnvName = &listEnvSQL[i].EnvName.String
+			envStr.EnvValue = &listEnvSQL[i].EnvValue.String
+			arrListEnv = append(arrListEnv, envStr)
+		}
+
+		ExecuteDeploy(&commandsD.Path.String, accequibleCommands, arrListEnv, &commandsD.Repository.String, &commandsD.Host.String)
 
 		c.JSON(ResponseDeploy{R: "Success"})
 	})
