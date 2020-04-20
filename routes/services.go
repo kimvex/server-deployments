@@ -126,17 +126,17 @@ func Services() {
 		var commandFromSQL CommadsSQL
 		var listCommandFromSQL []CommadsSQL
 		var responseData reponseIDs
-		var arrLitsCommands []*string
+		arrLitsCommands := []*string{}
 		serviceID := c.Params("service_id")
 		nodeID := c.Params("node_id")
 
 		nodoResult, err := sq.Select(
-			"nodos.name_nodo",
-			"nodos.version",
+			"name_nodo",
+			"version",
 		).
-			From("commands_node").
-			LeftJoin("nodos on commands_node.nodo_id=nodos.nodo_id").
-			Where(sq.Eq{"commands_node.nodo_id": nodeID, "service_id": serviceID}).
+			From("services").
+			LeftJoin("nodos on services.nodo_id=nodos.nodo_id").
+			Where(sq.Eq{"services.nodo_id": nodeID, "service_id": serviceID}).
 			RunWith(database).
 			Query()
 
