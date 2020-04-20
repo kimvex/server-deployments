@@ -65,6 +65,24 @@ type EnvString struct {
 	EnvValue *string `json:"variable_value"`
 }
 
+type ResponseServices struct {
+	ServiceID   sql.NullInt32
+	ServiceName sql.NullString
+	Repository  sql.NullString
+	Path        sql.NullString
+	NameNodo    sql.NullString
+	Version     sql.NullString
+}
+
+type ResponseCompleteService struct {
+	ServiceID   *int32  `json:"service_id"`
+	ServiceName *string `json:"service_name"`
+	Repository  *string `json:"repository"`
+	Path        *string `json:"path"`
+	NameNodo    *string `json:"name_nodo"`
+	Version     *string `json:"version"`
+}
+
 //Services Namespace for endpoint of services
 func Services() {
 	app.Post("/service", ValidateRoute, func(c *fiber.Ctx) {
@@ -112,7 +130,7 @@ func Services() {
 		serviceID := c.Params("service_id")
 		nodeID := c.Params("node_id")
 
-		err := sq.Select(
+		nodoResult, err := sq.Select(
 			"nodos.name_nodo",
 			"nodos.version",
 		).
@@ -120,15 +138,18 @@ func Services() {
 			LeftJoin("nodos on commands_node.nodo_id=nodos.nodo_id").
 			Where(sq.Eq{"commands_node.nodo_id": nodeID, "service_id": serviceID}).
 			RunWith(database).
-			QueryRow().
-			Scan(&nodoSQL.NodeName, &nodoSQL.Version)
+			Query()
 
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(err, "El error")
 			ErrorI := ErrorResponse{Message: "Ocurrio al obtener el nodo"}
 			c.JSON(ErrorI)
 			c.SendStatus(400)
 			return
+		}
+
+		for nodoResult.Next() {
+			_ = nodoResult.Scan(&nodoSQL.NodeName, &nodoSQL.Version)
 		}
 
 		commandSQLStr, errIds := sq.Select("command").
@@ -246,5 +267,55 @@ func Services() {
 		ExecuteDeploy(&commandsD.Path.String, accequibleCommands, arrListEnv, &commandsD.Repository.String, &commandsD.Host.String)
 
 		c.JSON(ResponseDeploy{R: "Success"})
+	})
+
+	app.Get("/service/:service_id", ValidateRoute, func(c *fiber.Ctx) {
+		serviceID := c.Params("service_id")
+		var responseSQL ResponseServices
+		var response ResponseCompleteService
+
+		service, errService := sq.Select(
+			"services.service_id",
+			"service_name",
+			"repository",
+			"path",
+			"name_nodo",
+			"version",
+		).
+			From("services").
+			LeftJoin("nodos on services.nodo_id = nodos.nodo_id").
+			Where(sq.Eq{"service_id": serviceID}).
+			RunWith(database).
+			Query()
+
+		if errService != nil {
+			fmt.Println(errService)
+			ErrorI := ErrorResponse{Message: "Ocurrio un error con los commandos"}
+			c.JSON(ErrorI)
+			c.SendStatus(400)
+			return
+		}
+
+		for service.Next() {
+			_ = service.Scan(
+				&responseSQL.ServiceID,
+				&responseSQL.ServiceName,
+				&responseSQL.Repository,
+				&responseSQL.Path,
+				&responseSQL.NameNodo,
+				&responseSQL.Version,
+			)
+
+			fmt.Println(responseSQL.ServiceID)
+
+			response.ServiceID = &responseSQL.ServiceID.Int32
+			response.ServiceName = &responseSQL.ServiceName.String
+			response.Repository = &responseSQL.Repository.String
+			response.Path = &responseSQL.Path.String
+			response.NameNodo = &responseSQL.NameNodo.String
+			response.Version = &responseSQL.Version.String
+		}
+
+		c.JSON(response)
 	})
 }
