@@ -290,7 +290,7 @@ func Services() {
 
 		if errService != nil {
 			fmt.Println(errService)
-			ErrorI := ErrorResponse{Message: "Ocurrio un error con los commandos"}
+			ErrorI := ErrorResponse{Message: "Ocurrio un problema al obtener la informacion del servicio."}
 			c.JSON(ErrorI)
 			c.SendStatus(400)
 			return
