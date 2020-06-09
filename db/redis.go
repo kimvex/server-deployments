@@ -3,29 +3,30 @@ package db
 import (
 	"fmt"
 
-	"github.com/go-redis/redis"
+	"github.com/gomodule/redigo/redis"
 )
 
 type RedisCon struct {
-	Connection *redis.Client
+	Connection redis.Conn
 }
 
 var connection RedisCon
 
-func Redisdb() *redis.Client {
-	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
+func Redisdb() redis.Conn {
+	c, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Println(err, "Error conection redis")
+	}
 
-	connection.Connection = client
+	connection.Connection = c
 
 	return connection.Connection
 }
 
+//GetUserId for get userid
 func GetUserId() string {
-	value, error := connection.Connection.Get("asdjhsajdh-asdsada-22324-dsf").Result()
+	value, error := redis.String(connection.Connection.Do("get", "asdjhsajdh-asdsada-22324-dsf"))
+	fmt.Println("value", value)
 
 	if error != nil {
 		fmt.Println(error)

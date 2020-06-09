@@ -51,10 +51,10 @@ func Login() {
 				panic(setErr)
 			}
 
-			err := redisC.Set(tokenS, userSelected.UserID, time.Hour*24*30).Err()
-			if err != nil {
-				panic(err)
-			}
+			redisC.Do("SET", tokenS, userSelected.UserID, time.Hour*24*30)
+			// if err != nil {
+			// 	panic(err)
+			// }
 			c.JSON(TokenResponse{Token: tokenS})
 			return
 		}

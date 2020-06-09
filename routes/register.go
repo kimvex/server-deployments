@@ -14,7 +14,7 @@ func Register() {
 	fmt.Println(userID)
 	app.Post("/register", func(c *fiber.Ctx) {
 		fmt.Println(c.Body())
-		fmt.Println(c.Body("email"), c.Body("Email"))
+		// fmt.Println(c.Body("email"), c.Body("Email"))
 		var bodyRequest BodyRequest
 
 		if err := c.BodyParser(&bodyRequest); err != nil {

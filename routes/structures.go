@@ -4,8 +4,8 @@ import (
 	"database/sql"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/go-redis/redis"
 	"github.com/gofiber/fiber"
+	"github.com/gomodule/redigo/redis"
 )
 
 /*Login*/
@@ -50,11 +50,11 @@ type ErrorResponse struct {
 var (
 	app      *fiber.App
 	database *sql.DB
-	redisC   *redis.Client
+	redisC   redis.Conn
 	userID   string
 )
 
-func Routes(App *fiber.App, Database *sql.DB, RedisCl *redis.Client, UserIDC string) {
+func Routes(App *fiber.App, Database *sql.DB, RedisCl redis.Conn, UserIDC string) {
 	app = App
 	database = Database
 	redisC = RedisCl

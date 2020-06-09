@@ -197,9 +197,9 @@ func Services() {
 		nodeID := c.Params("node_id")
 
 		errCD := sq.Select("path", "repository", "host").
-			From("commands_node").
-			LeftJoin("services on commands_node.service_id=services.service_id").
+			From("services").
 			LeftJoin("hosts on services.hosts_id=hosts.hosts_id").
+			Where(sq.Eq{"service_id": serviceID, "nodo_id": nodeID}).
 			RunWith(database).
 			QueryRow().
 			Scan(&commandsD.Path, &commandsD.Repository, &commandsD.Host)
@@ -263,6 +263,8 @@ func Services() {
 			envStr.EnvValue = &listEnvSQL[i].EnvValue.String
 			arrListEnv = append(arrListEnv, envStr)
 		}
+
+		fmt.Println(commandsD)
 
 		ExecuteDeploy(&commandsD.Path.String, accequibleCommands, arrListEnv, &commandsD.Repository.String, &commandsD.Host.String)
 
